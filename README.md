@@ -34,9 +34,6 @@ Dane przesyłane są w lekkim formacie **JSON**.
 
 ### Struktura wiadomości sterującej (`Power/cmd`):
 Aplikacja bazowa wysyła komendy włączające/wyłączające poszczególne linie:
-```
-```text?code_stdout&code_event_index=5
-Plik wygenerowany poprawnie.
 
 ```json
 {
