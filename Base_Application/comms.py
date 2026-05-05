@@ -2,6 +2,7 @@
 import paho.mqtt.client as mqtt
 import json
 import config
+import time
 from utils import AppState
 
 class MqttManager:
@@ -36,6 +37,7 @@ class MqttManager:
             payload = json.loads(msg.payload.decode())
             
             if isinstance(payload, dict):
+                self.state.last_feedback_time = time.time()
                 # Zapisujemy odczyty z modułu zasilania
                 if "temp_c" in payload:
                     self.state.temp_c = payload.get("temp_c", 0.0)
@@ -57,22 +59,30 @@ class MqttManager:
         except Exception as e:
             self.state.log(f"Błąd parsowania: {e}")
 
-    def toggle_switch(self, switch_name):
-        """Metoda wywoływana z GUI przy kliknięciu przycisku pinu"""
+    def set_switch(self, switch_name, new_state):
+        """Metoda wywoływana z GUI przy kliknięciu przycisku ON lub OFF"""
         if self.client and self.state.mqtt_connected:
-            # Odwrócenie logiki (jeśli był 0, zrób 1. Jeśli był 1, zrób 0)
-            current_state = self.state.switches.get(switch_name, 0)
-            new_state = 1 if current_state == 0 else 0
+            # Jeśli stan się nie zmienił, ignorujemy kliknięcie
+            if self.state.switches.get(switch_name) == new_state:
+                return
             
-            # Zapisz nowy stan w AppState by GUI zmieniło kolor
+            # Zapisz nowy stan w AppState by GUI natychmiast zareagowało
             self.state.switches[switch_name] = new_state
             
-            # Utworzenie i wysłanie komendy JSON zgodnej z wymaganiami z ESP32
+            # Utworzenie i wysłanie komendy JSON
             payload = {switch_name: new_state}
-            
             try:
                 payload_json = json.dumps(payload)
                 self.client.publish(config.TOPIC_CMD, payload_json)
-                self.state.log(f">> CMD: Wysłano {switch_name} -> {new_state}")
+                state_str = "ON (1)" if new_state == 1 else "OFF (0)"
+                self.state.log(f">> CMD: Wysłano {switch_name} -> {state_str}")
             except Exception as e:
                 self.state.log(f"Błąd wysyłania: {e}")
+
+    def force_reconnect(self):
+        self.state.log(">> Wymuszam ręczny restart połączenia MQTT...")
+        try:
+            self.client.disconnect()
+            self.connect()
+        except Exception as e:
+            self.state.log(f"Błąd podczas restartu: {e}")

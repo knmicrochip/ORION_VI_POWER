@@ -7,7 +7,18 @@ from gui import PowerDashboardGUI
 def main():
     root = tk.Tk()
     root.title("Orion Power Station Dashboard")
-    root.geometry("1100x800")
+    
+    # --- ZMIANA NA PEŁNY EKRAN (FULLSCREEN) ---
+    root.attributes('-fullscreen', True)
+
+    # Funkcja pozwalająca wyjść z pełnego ekranu po wciśnięciu klawisza ESC
+    def exit_fullscreen(event):
+        root.attributes('-fullscreen', False)
+        # Po wyjściu z trybu pełnoekranowego ustawiamy standardowy rozmiar, by okno nie zniknęło
+        root.geometry("1400x800")
+
+    # Przypisanie zdarzenia klawiatury
+    root.bind("<Escape>", exit_fullscreen)
 
     # Inicjalizacja Stanu i Modułów
     app_state = AppState()
@@ -18,7 +29,7 @@ def main():
     mqtt_manager.connect()
 
     def main_loop():
-        # Odświeżenie GUI nowymi danymi otrzymanymi z subskrypcji MQTT
+        # Odświeżenie GUI nowymi danymi
         gui.update_interface()
         
         # Zapętlenie wywołania interfejsu (co 100ms)
